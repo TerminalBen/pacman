@@ -72,7 +72,7 @@ class ReflexAgent(Agent):
         newPos = successorGameState.getPacmanPosition()
         newFood = successorGameState.getFood()
         newGhostStates = successorGameState.getGhostStates()
-        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+        #newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
         "*** YOUR CODE HERE ***"
         #dealing with food
@@ -440,13 +440,13 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
             successor_index = index+1
             successor_depth = depth
 
-
+            #update pacman's indexes and depth
             if successor_index == gameState.getNumAgents():
                 successor_index = 0
                 successor_depth += 1
-
+            #calculate the (action,score) for the current successor
             current_action,current_value = self.getValue(successor,successor_index,successor_depth)
-
+            #update the expected_value with the value and the successor probability
             expected_value += successor_prob*current_value
 
         return expected_action,expected_value
@@ -457,10 +457,53 @@ def betterEvaluationFunction(currentGameState):
     Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
     evaluation function (question 5).
 
-    DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION: The goal is to try do maximise the score(eating the sleeping ghosts
+    and eating the capsules) while getting closer to the game otherfood pellets, and 
+    staying the furthest away from the closest ghost unless they are asleep.
+    
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    #map all the pellets, capusles and ghosts + getg pacman current position
+    #using manhattan distance
+    foodDistance = []
+    closestGhostDistance = []
+    #capsulesDistance = []
+    #score= 0
+
+    foodList = currentGameState.getFood().asList()
+    ghostStates = currentGameState.getGhostStates()
+    capsuleList = currentGameState.getCapsules()
+    numOfScaredGhosts =0
+
+    pacmanPos = list(currentGameState.getPacmanPosition())
+
+    #dealing with the ghosts.
+    for ghostState in ghostStates: 
+        if ghostState.scaredTimer == 0:
+            numOfScaredGhosts +=1
+            closestGhostDistance.append(0)
+            continue
+        
+        ghostCoord = ghostState.getPosition()
+        x = abs(ghostCoord[0]-pacmanPos[0])
+        y = abs(ghostCoord[1]-pacmanPos[1])
+        if (x+y) == 0:
+            closestGhostDistance.append(0)
+        else:
+            closestGhostDistance.append(-1.0/(x+y))
+
+    for food in foodList:
+        x = abs(food[0]-pacmanPos[0])
+        y = abs(food[1]-pacmanPos[1])
+        foodDistance.append(-1*(x+y))
+    
+    if not foodDistance:
+        foodDistance.append(0)
+
+    return (max(foodDistance) + min(closestGhostDistance) 
+            +currentGameState.getScore()-100*len(capsuleList)
+            -20*(len(ghostStates))-numOfScaredGhosts)
+
 
 # Abbreviation
 better = betterEvaluationFunction
