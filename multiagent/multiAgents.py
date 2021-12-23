@@ -79,10 +79,12 @@ class ReflexAgent(Agent):
         foodPos = newFood.asList() #list of pellets in board
         foodcount = len(foodPos) #number of pellets in board
         distance2food = float('inf') #bignumber here.
+
         for i in range(foodcount):
             distance = manhattanDistance(foodPos[i],newPos)+foodcount*100#use manhattan distance functin provided to calculate distance to next food
             if distance<distance2food:#compare thedistance to food to the stored distance
                 distance2food = distance
+
         if foodcount == 0: #finish loop
             distance2food =0
         score = -distance2food #init score
@@ -94,6 +96,7 @@ class ReflexAgent(Agent):
         #dealing with ghosts
         for i in range(len(newGhostStates)):#look for all of the ghost states in the game
             ghostPos = successorGameState.getGhostPosition(i+1)#gets their position
+            
             if manhattanDistance(newPos,ghostPos)<=1:#compares the distance
                 score -= float('inf') #runs away
         #return successorGameState.getScore()
@@ -364,7 +367,90 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        #util.raiseNotDefined()
+        action,score = self.getValue(gameState,0,0)
+        return action
+
+    def getValue(self,gameState,index,depth):
+        """Generates and returns (action,score), based on the terminal State, Max-agent, and expectation-agent 
+
+        Args:
+            gameState ([game]): [state of the game(check game.py)]
+            index ([int]): [position of agent]
+            depth ([int]): [depth of search]
+        """
+        #if we reach a terminal state
+        if len(gameState.getLegalActions(index))==0 or depth == self.depth:
+            return "",self.evaluationFunction(gameState)
+        
+        #if we are a maxagent(pacman)
+        if index ==0:
+            return self.maxValue(gameState,index,depth)
+
+        #if we are expectationAgent (ghost)
+        else:
+            return self.expectedValue(gameState,index,depth)
+
+    def maxValue(self,gameState,index,depth):
+        """Returns the max of the pair [score,action]for maxagent
+
+        Args:
+            gameState ([game]): [state of the game(check game.py)]
+            index ([int]): [position of agent]
+            depth ([int]): [depth of search]
+        """
+        legalMoves = gameState.getLegalActions(index)
+        max_value = float('-inf')
+        max_action =""
+        for action in legalMoves:
+            successor = gameState.generateSuccessor(index,action)
+            successor_index = index+1
+            successor_depth = depth
+
+            #if agent is pacman update agent index and depth
+            if successor_index == gameState.getNumAgents():
+                successor_index =0
+                successor_depth+=1
+            
+            currAction,currValue = self.getValue(successor,successor_index,successor_depth)
+
+            if currValue > max_value:
+                max_value = currValue
+                max_action = action
+
+        return max_action,max_value
+
+    def expectedValue(self,gameState,index,depth):
+        """Generates and returns the expectimax value (action,score) for the ghosts
+
+        Args:
+            gameState ([game]): [state of the game(check game.py)]
+            index ([int]): [position of agent]
+            depth ([int]): [depth of search]
+        """
+        legalMoves = gameState.getLegalActions(index)
+        expected_value = 0
+        expected_action  = ""
+
+        #use uniform distribution to find successor probability
+        successor_prob = 1.0/len(legalMoves)
+
+        for action in legalMoves:
+            successor = gameState.generateSuccessor(index,action)
+            successor_index = index+1
+            successor_depth = depth
+
+
+            if successor_index == gameState.getNumAgents():
+                successor_index = 0
+                successor_depth += 1
+
+            current_action,current_value = self.getValue(successor,successor_index,successor_depth)
+
+            expected_value += successor_prob*current_value
+
+        return expected_action,expected_value
+
 
 def betterEvaluationFunction(currentGameState):
     """
